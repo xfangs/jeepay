@@ -30,9 +30,9 @@ spring:
       number_format: '#' #数字格式进行原样显示，不加格式化字符例如  100,00
   datasource:
     # yml填写url连接串， 无需将&符号进行转义
-    url: jdbc:mysql://172.20.0.10:3306/jeepaydb?zeroDateTimeBehavior=convertToNull&useUnicode=true&characterEncoding=utf-8&autoReconnect=true&useSSL=false&allowPublicKeyRetrieval=true
-    username: jeepay
-    password: jeepay
+    url: jdbc:mysql://127.0.0.1:3306/jeepay?zeroDateTimeBehavior=convertToNull&useUnicode=true&characterEncoding=utf-8&autoReconnect=true&useSSL=false&allowPublicKeyRetrieval=true
+    username: root
+    password: 123456
     druid:
       # 连接池配置项
       initial-size: 5 #初始化时建立物理连接的个数
@@ -55,7 +55,7 @@ spring:
   cache:
     type: redis
   redis:
-    host: 172.20.0.12
+    host: 127.0.0.1
     port: 6379
     database: 3    #1库：运营平台  #2库：商户系统 #3库：支付网关
     timeout: 1000
@@ -130,4 +130,3 @@ isys:
 
   mq:
     vender: activeMQ  #  切换MQ厂商， 支持：【 activeMQ  rabbitMQ  rocketMQ  aliYunRocketMQ 】， 需正确配置 【对应的yml参数】 和 【jeepay-components-mq项目下pom.xml中的依赖包】。
-
