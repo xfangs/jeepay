@@ -31,119 +31,145 @@ import com.jeequan.jeepay.response.PayOrderCreateResponse;
 import com.jeequan.jeepay.service.impl.MchAppService;
 import com.jeequan.jeepay.service.impl.MchPayPassageService;
 import com.jeequan.jeepay.service.impl.SysConfigService;
+import java.util.HashSet;
+import java.util.Set;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.*;
-
-import java.util.HashSet;
-import java.util.Set;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 /*
-* 支付测试类
-*
-* @author terrfly
-* @site https://www.jeequan.com
-* @date 2021/6/22 9:43
-*/
+ * 支付测试类
+ *
+ * @author terrfly
+ * @site https://www.jeequan.com
+ * @date 2021/6/22 9:43
+ */
 @RestController
 @RequestMapping("/api/paytest")
 public class PaytestController extends CommonCtrl {
 
-    @Autowired private MchAppService mchAppService;
-    @Autowired private MchPayPassageService mchPayPassageService;
-    @Autowired private SysConfigService sysConfigService;
+  @Autowired
+  private MchAppService mchAppService;
+  @Autowired
+  private MchPayPassageService mchPayPassageService;
+  @Autowired
+  private SysConfigService sysConfigService;
 
-    /** 查询商户对应应用下支持的支付方式 **/
-    @PreAuthorize("hasAuthority('ENT_MCH_PAY_TEST_PAYWAY_LIST')")
-    @GetMapping("/payways/{appId}")
-    public ApiRes payWayList(@PathVariable("appId") String appId) {
+  /**
+   * 查询商户对应应用下支持的支付方式
+   **/
+  @PreAuthorize("hasAuthority('ENT_MCH_PAY_TEST_PAYWAY_LIST')")
+  @GetMapping("/payways/{appId}")
+  public ApiRes payWayList(@PathVariable("appId") String appId) {
 
-        Set<String> payWaySet = new HashSet<>();
-        mchPayPassageService.list(
-                MchPayPassage.gw().select(MchPayPassage::getWayCode)
-                        .eq(MchPayPassage::getMchNo, getCurrentMchNo())
-                        .eq(MchPayPassage::getAppId, appId)
-                        .eq(MchPayPassage::getState, CS.PUB_USABLE)
-        ).stream().forEach(r -> payWaySet.add(r.getWayCode()));
+    Set<String> payWaySet = new HashSet<>();
+    mchPayPassageService.list(
+        MchPayPassage.gw().select(MchPayPassage::getWayCode)
+            .eq(MchPayPassage::getMchNo, getCurrentMchNo())
+            .eq(MchPayPassage::getAppId, appId)
+            .eq(MchPayPassage::getState, CS.PUB_USABLE)
+    ).stream().forEach(r -> payWaySet.add(r.getWayCode()));
 
-        return ApiRes.ok(payWaySet);
+    return ApiRes.ok(payWaySet);
+  }
+
+
+  /**
+   * 调起下单接口
+   **/
+  @PreAuthorize("hasAuthority('ENT_MCH_PAY_TEST_DO')")
+  @PostMapping("/payOrders")
+  public ApiRes doPay() {
+
+    logger.info("正在进行测试下单...");
+
+    //获取请求参数
+    String appId = getValStringRequired("appId");
+    Long amount = getRequiredAmountL("amount");
+    String mchOrderNo = getValStringRequired("mchOrderNo");
+    String wayCode = getValStringRequired("wayCode");
+
+    Byte divisionMode = getValByteRequired("divisionMode");
+    String orderTitle = getValStringRequired("orderTitle");
+    String currency = getValStringRequired("currency");
+
+    if (StringUtils.isEmpty(orderTitle)) {
+      throw new BizException("订单标题不能为空");
     }
 
+    // 前端明确了支付参数的类型 payDataType
+    String payDataType = getValString("payDataType");
+    String authCode = getValString("authCode");
 
-    /** 调起下单接口 **/
-    @PreAuthorize("hasAuthority('ENT_MCH_PAY_TEST_DO')")
-    @PostMapping("/payOrders")
-    public ApiRes doPay() {
-
-        //获取请求参数
-        String appId = getValStringRequired("appId");
-        Long amount = getRequiredAmountL("amount");
-        String mchOrderNo = getValStringRequired("mchOrderNo");
-        String wayCode = getValStringRequired("wayCode");
-
-        Byte divisionMode = getValByteRequired("divisionMode");
-        String orderTitle = getValStringRequired("orderTitle");
-
-        if(StringUtils.isEmpty(orderTitle)){
-            throw new BizException("订单标题不能为空");
-        }
-
-        // 前端明确了支付参数的类型 payDataType
-        String payDataType = getValString("payDataType");
-        String authCode = getValString("authCode");
-
-
-        MchApp mchApp = mchAppService.getById(appId);
-        if(mchApp == null || mchApp.getState() != CS.PUB_USABLE || !mchApp.getAppId().equals(appId)){
-            throw new BizException("商户应用不存在或不可用");
-        }
-
-        PayOrderCreateRequest request = new PayOrderCreateRequest();
-        PayOrderCreateReqModel model = new PayOrderCreateReqModel();
-        request.setBizModel(model);
-
-        model.setMchNo(getCurrentMchNo()); // 商户号
-        model.setAppId(appId);
-        model.setMchOrderNo(mchOrderNo);
-        model.setWayCode(wayCode);
-        model.setAmount(amount);
-        // paypal通道使用USD类型货币
-        if(wayCode.equalsIgnoreCase("pp_pc")) {
-            model.setCurrency("USD");
-        }else {
-            model.setCurrency("CNY");
-        }
-        model.setClientIp(getClientIp());
-        model.setSubject(orderTitle + "[" + getCurrentMchNo() + "商户联调]");
-        model.setBody(orderTitle + "[" + getCurrentMchNo() + "商户联调]");
-
-        DBApplicationConfig dbApplicationConfig = sysConfigService.getDBApplicationConfig();
-
-        model.setNotifyUrl(dbApplicationConfig.getMchSiteUrl() + "/api/anon/paytestNotify/payOrder"); //回调地址
-        model.setDivisionMode(divisionMode); //分账模式
-
-        //设置扩展参数
-        JSONObject extParams = new JSONObject();
-        if(StringUtils.isNotEmpty(payDataType)) {
-            extParams.put("payDataType", payDataType.trim());
-        }
-        if(StringUtils.isNotEmpty(authCode)) {
-            extParams.put("authCode", authCode.trim());
-        }
-        model.setChannelExtra(extParams.toString());
-
-        JeepayClient jeepayClient = new JeepayClient(dbApplicationConfig.getPaySiteUrl(), mchApp.getAppSecret());
-
-        try {
-            PayOrderCreateResponse response = jeepayClient.execute(request);
-            if(response.getCode() != 0){
-                throw new BizException(response.getMsg());
-            }
-            return ApiRes.ok(response.get());
-        } catch (JeepayException e) {
-            throw new BizException(e.getMessage());
-        }
+    MchApp mchApp = mchAppService.getById(appId);
+    if (mchApp == null || mchApp.getState() != CS.PUB_USABLE || !mchApp.getAppId().equals(appId)) {
+      throw new BizException("商户应用不存在或不可用");
     }
+
+    PayOrderCreateRequest request = new PayOrderCreateRequest();
+    PayOrderCreateReqModel model = new PayOrderCreateReqModel();
+    request.setBizModel(model);
+
+    model.setMchNo(getCurrentMchNo()); // 商户号
+    model.setAppId(appId);
+    model.setMchOrderNo(mchOrderNo);
+    model.setCurrency(currency);
+    model.setWayCode(wayCode);
+    model.setAmount(amount);
+
+    if (StringUtils.isBlank(currency)) {
+      switch (wayCode) {
+        case "pp_pc":
+          model.setCurrency("USD");
+          break;
+        default:
+          model.setCurrency("CNY");
+          break;
+      }
+    } else {
+      model.setCurrency(currency);
+    }
+
+    model.setClientIp(getClientIp());
+    model.setSubject(orderTitle + "[" + getCurrentMchNo() + "商户联调]");
+    model.setBody(orderTitle + "[" + getCurrentMchNo() + "商户联调]");
+
+    DBApplicationConfig dbApplicationConfig = sysConfigService.getDBApplicationConfig();
+
+    model.setNotifyUrl(
+        dbApplicationConfig.getMchSiteUrl() + "/api/anon/paytestNotify/payOrder"); //回调地址
+    model.setReturnUrl(dbApplicationConfig.getPaySiteUrl());
+    model.setDivisionMode(divisionMode); //分账模式
+
+    //设置扩展参数
+    JSONObject extParams = new JSONObject();
+    if (StringUtils.isNotEmpty(payDataType)) {
+      extParams.put("payDataType", payDataType.trim());
+    }
+    if (StringUtils.isNotEmpty(authCode)) {
+      extParams.put("authCode", authCode.trim());
+    }
+    model.setChannelExtra(extParams.toString());
+
+    JeepayClient jeepayClient = new JeepayClient(dbApplicationConfig.getPaySiteUrl(),
+        mchApp.getAppSecret());
+
+    try {
+      PayOrderCreateResponse response = jeepayClient.execute(request);
+      if (response.getCode() != 0) {
+        throw new BizException(response.getMsg());
+      }
+
+      return ApiRes.ok(response.get());
+    } catch (JeepayException e) {
+      logger.error(e.getMessage(), e);
+      throw new BizException(e.getMessage());
+    }
+  }
 
 }

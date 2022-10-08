@@ -17,6 +17,7 @@ package com.jeequan.jeepay.core.model.params;
 
 import com.alibaba.fastjson.JSONObject;
 import com.jeequan.jeepay.core.constants.CS;
+import com.jeequan.jeepay.core.model.params.aliGlobalPay.AliGlobalPayNormalMchParams;
 import com.jeequan.jeepay.core.model.params.alipay.AlipayNormalMchParams;
 import com.jeequan.jeepay.core.model.params.pppay.PpPayNormalMchParams;
 import com.jeequan.jeepay.core.model.params.wxpay.WxpayNormalMchParams;
@@ -31,23 +32,25 @@ import com.jeequan.jeepay.core.model.params.xxpay.XxpayNormalMchParams;
  */
 public abstract class NormalMchParams {
 
-    public static NormalMchParams factory(String ifCode, String paramsStr){
+  public static NormalMchParams factory(String ifCode, String paramsStr) {
 
-        if(CS.IF_CODE.WXPAY.equals(ifCode)){
-            return JSONObject.parseObject(paramsStr, WxpayNormalMchParams.class);
-        }else if(CS.IF_CODE.ALIPAY.equals(ifCode)){
-            return JSONObject.parseObject(paramsStr, AlipayNormalMchParams.class);
-        }else if(CS.IF_CODE.XXPAY.equals(ifCode)){
-            return JSONObject.parseObject(paramsStr, XxpayNormalMchParams.class);
-        }else if (CS.IF_CODE.PPPAY.equals(ifCode)){
-            return JSONObject.parseObject(paramsStr, PpPayNormalMchParams.class);
-        }
-        return null;
+    if (CS.IF_CODE.WXPAY.equals(ifCode)) {
+      return JSONObject.parseObject(paramsStr, WxpayNormalMchParams.class);
+    } else if (CS.IF_CODE.ALIPAY.equals(ifCode)) {
+      return JSONObject.parseObject(paramsStr, AlipayNormalMchParams.class);
+    } else if (CS.IF_CODE.XXPAY.equals(ifCode)) {
+      return JSONObject.parseObject(paramsStr, XxpayNormalMchParams.class);
+    } else if (CS.IF_CODE.PPPAY.equals(ifCode)) {
+      return JSONObject.parseObject(paramsStr, PpPayNormalMchParams.class);
+    } else if (CS.IF_CODE.ALI_GLOBAL_PAY.equals(ifCode)) {
+      return JSONObject.parseObject(paramsStr, AliGlobalPayNormalMchParams.class);
     }
+    return null;
+  }
 
-    /**
-     *  敏感数据脱敏
-     */
-    public abstract String deSenData();
+  /**
+   * 敏感数据脱敏
+   */
+  public abstract String deSenData();
 
 }

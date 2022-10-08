@@ -101,7 +101,7 @@ public class MchPayInterfaceConfigController extends CommonCtrl {
                 }
             }
         }
-        return ApiRes.ok(payInterfaceConfig);
+            return ApiRes.ok(payInterfaceConfig);
     }
 
     /**

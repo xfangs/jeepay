@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion> <!-- POM模型版本 -->
 
   <groupId>com.jeequan</groupId> <!-- 组织名, 类似于包名 -->
@@ -38,17 +39,17 @@
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-activemq</artifactId>
-<!--      <scope>provided</scope>-->
+      <!--      <scope>provided</scope>-->
     </dependency>
     <dependency>
       <groupId>org.apache.activemq</groupId>
       <artifactId>activemq-pool</artifactId>
-<!--      <scope>provided</scope>-->
+      <!--      <scope>provided</scope>-->
     </dependency>
     <dependency>
       <groupId>org.messaginghub</groupId>
       <artifactId>pooled-jms</artifactId>
-<!--      <scope>provided</scope>-->
+      <!--      <scope>provided</scope>-->
     </dependency>
 
     <!-- RabbitMQ  -->
@@ -62,7 +63,6 @@
     <dependency>
       <groupId>org.apache.rocketmq</groupId>
       <artifactId>rocketmq-spring-boot-starter</artifactId>
-      <scope>provided</scope>
     </dependency>
 
     <!-- AliyunRocketMQ -->
@@ -71,6 +71,14 @@
       <artifactId>ons-client</artifactId>
       <scope>provided</scope>
     </dependency>
+
+
+    <dependency>
+      <groupId>org.apache.rocketmq</groupId>
+      <artifactId>rocketmq-client</artifactId>
+    </dependency>
+
+
 
     <!-- ↑↑↑↑↑↑ MQ依赖包 ↑↑↑↑↑↑ -->
 
@@ -83,7 +91,9 @@
       </resource>
       <resource>
         <directory>src/main/java</directory>
-        <includes><include>**/*.xml</include></includes><!-- maven可以将mapper.xml进行打包处理，否则仅对java文件处理 -->
+        <includes>
+          <include>**/*.xml</include>
+        </includes><!-- maven可以将mapper.xml进行打包处理，否则仅对java文件处理 -->
       </resource>
     </resources>
 

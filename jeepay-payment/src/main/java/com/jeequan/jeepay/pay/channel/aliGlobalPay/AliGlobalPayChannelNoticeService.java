@@ -13,20 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.jeequan.jeepay.pay.channel.alipay;
+package com.jeequan.jeepay.pay.channel.aliGlobalPay;
 
 import com.alibaba.fastjson.JSONObject;
-import com.alipay.api.internal.util.AlipaySignature;
-import com.jeequan.jeepay.core.constants.CS;
+import com.jeequan.jeepay.core.constants.CS.IF_CODE;
 import com.jeequan.jeepay.core.entity.PayOrder;
 import com.jeequan.jeepay.core.exception.ResponseException;
-import com.jeequan.jeepay.core.model.params.alipay.AlipayConfig;
-import com.jeequan.jeepay.core.model.params.alipay.AlipayIsvParams;
-import com.jeequan.jeepay.core.model.params.alipay.AlipayNormalMchParams;
 import com.jeequan.jeepay.pay.channel.AbstractChannelNoticeService;
 import com.jeequan.jeepay.pay.model.MchAppConfigContext;
 import com.jeequan.jeepay.pay.rqrs.msg.ChannelRetMsg;
-import java.util.Map;
 import javax.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.MutablePair;
@@ -42,12 +37,12 @@ import org.springframework.stereotype.Service;
  */
 @Service
 @Slf4j
-public class AlipayChannelNoticeService extends AbstractChannelNoticeService {
+public class AliGlobalPayChannelNoticeService extends AbstractChannelNoticeService {
 
 
   @Override
   public String getIfCode() {
-    return CS.IF_CODE.ALIPAY;
+    return IF_CODE.ALI_GLOBAL_PAY;
   }
 
   @Override
@@ -57,7 +52,12 @@ public class AlipayChannelNoticeService extends AbstractChannelNoticeService {
     try {
 
       JSONObject params = getReqParamJSON();
-      String payOrderId = params.getString("out_trade_no");
+
+      log.info("支付回调参数：" + params.toJSONString());
+
+      String payOrderId = params.getString("paymentRequestId");
+
+      log.info("支付回调订单号：" + payOrderId);
       return MutablePair.of(payOrderId, params);
 
     } catch (Exception e) {
@@ -72,52 +72,6 @@ public class AlipayChannelNoticeService extends AbstractChannelNoticeService {
       MchAppConfigContext mchAppConfigContext, NoticeTypeEnum noticeTypeEnum) {
     try {
 
-      //配置参数获取
-      Byte useCert = null;
-      String alipaySignType, alipayPublicCert, alipayPublicKey = null;
-      if (mchAppConfigContext.isIsvsubMch()) {
-
-        // 获取支付参数
-        AlipayIsvParams alipayParams = (AlipayIsvParams) configContextQueryService.queryIsvParams(
-            mchAppConfigContext.getMchInfo().getIsvNo(), getIfCode());
-        useCert = alipayParams.getUseCert();
-        alipaySignType = alipayParams.getSignType();
-        alipayPublicCert = alipayParams.getAlipayPublicCert();
-        alipayPublicKey = alipayParams.getAlipayPublicKey();
-
-      } else {
-
-        // 获取支付参数
-        AlipayNormalMchParams alipayParams = (AlipayNormalMchParams) configContextQueryService.queryNormalMchParams(
-            mchAppConfigContext.getMchNo(), mchAppConfigContext.getAppId(), getIfCode());
-
-        useCert = alipayParams.getUseCert();
-        alipaySignType = alipayParams.getSignType();
-        alipayPublicCert = alipayParams.getAlipayPublicCert();
-        alipayPublicKey = alipayParams.getAlipayPublicKey();
-      }
-
-      // 获取请求参数
-      JSONObject jsonParams = (JSONObject) params;
-
-      boolean verifyResult;
-      if (useCert != null && useCert == CS.YES) {  //证书方式
-
-        verifyResult = AlipaySignature.rsaCertCheckV1(jsonParams.toJavaObject(Map.class),
-            getCertFilePath(alipayPublicCert),
-            AlipayConfig.CHARSET, alipaySignType);
-
-      } else {
-        verifyResult = AlipaySignature.rsaCheckV1(jsonParams.toJavaObject(Map.class),
-            alipayPublicKey, AlipayConfig.CHARSET, alipaySignType);
-      }
-
-      //验签失败
-      if (!verifyResult) {
-        throw ResponseException.buildText("ERROR");
-      }
-
-      //验签成功后判断上游订单状态
       ResponseEntity okResponse = textResp("SUCCESS");
 
       ChannelRetMsg result = new ChannelRetMsg();
@@ -125,12 +79,15 @@ public class AlipayChannelNoticeService extends AbstractChannelNoticeService {
 
       result.setChannelState(ChannelRetMsg.ChannelState.WAITING); // 默认支付中
 
+      JSONObject jsonParams = (JSONObject) params;
+
       if ("SUCCESS".equals(jsonParams.getJSONObject("result").getString("resultCode"))) {
 
         result.setChannelState(ChannelRetMsg.ChannelState.CONFIRM_SUCCESS);
       }
 
       return result;
+
     } catch (Exception e) {
       log.error("error", e);
       throw ResponseException.buildText("ERROR");

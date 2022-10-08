@@ -18,6 +18,7 @@ package com.jeequan.jeepay.mch.bootstrap;
 import com.alibaba.fastjson.support.config.FastJsonConfig;
 import com.alibaba.fastjson.support.spring.FastJsonHttpMessageConverter;
 import com.baomidou.mybatisplus.extension.plugins.PaginationInterceptor;
+import java.util.Arrays;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -27,8 +28,6 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.MediaType;
 import org.springframework.scheduling.annotation.EnableScheduling;
-
-import java.util.Arrays;
 
 /**
  * spring-boot 主启动程序
@@ -46,6 +45,8 @@ public class JeepayMchApplication {
 
     /** main启动函数 **/
     public static void main(String[] args) {
+
+
 
         //启动项目
         SpringApplication.run(JeepayMchApplication.class, args);
