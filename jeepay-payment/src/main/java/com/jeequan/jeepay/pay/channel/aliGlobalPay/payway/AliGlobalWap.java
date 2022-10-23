@@ -53,7 +53,7 @@ public class AliGlobalWap extends AlipayPaymentService {
     alipayPayRequest.setClientId(normalMchParams.getAppId());
     alipayPayRequest.setPath(
         StrUtil.equals(normalMchParams.getSandbox() + "", "1") ? "/ams/sandbox/api/v1/payments/pay"
-            : "");
+            : "/ams/api/v1/payments/pay");
     alipayPayRequest.setProductCode(ProductCodeType.CASHIER_PAYMENT);
     alipayPayRequest.setPaymentRequestId(payOrder.getPayOrderId());
 

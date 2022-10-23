@@ -18,8 +18,10 @@ package com.jeequan.jeepay.pay.ctrl;
 import cn.hutool.core.codec.Base64;
 import com.jeequan.jeepay.core.ctrls.AbstractCtrl;
 import com.jeequan.jeepay.core.entity.PayOrder;
+import com.jeequan.jeepay.core.model.DBApplicationConfig;
 import com.jeequan.jeepay.core.utils.JeepayKit;
 import com.jeequan.jeepay.service.impl.PayOrderService;
+import com.jeequan.jeepay.service.impl.SysConfigService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -42,6 +44,9 @@ public class CommonController extends AbstractCtrl {
 
   @Autowired
   private PayOrderService payOrderService;
+
+  @Autowired
+  private SysConfigService sysConfigService;
 
   /**
    * 跳转到支付页面(适合网关支付form表单输出)
@@ -71,13 +76,21 @@ public class CommonController extends AbstractCtrl {
   @RequestMapping(value = "/webCashier")
   public String webCashier(@RequestParam String orderId, Model model) {
 
+    DBApplicationConfig dbApplicationConfig = sysConfigService.getDBApplicationConfig();
+
     String _orderId = JeepayKit.aesDecode(orderId);
 
     PayOrder payOrder = payOrderService.getById(_orderId);
 
+    String amount = Double.parseDouble(payOrder.getAmount().toString()) / 100d + "";
+
     model.addAttribute("payOrder", payOrder);
 
     model.addAttribute("orderId", orderId);
+
+    model.addAttribute("amount", amount);
+
+    model.addAttribute("baseURL", dbApplicationConfig.getPaySiteUrl());
 
     return "webCashier/webCashier";
   }

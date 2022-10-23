@@ -144,8 +144,8 @@
 <div class="div-top">
   <div class="div-top-center">
     <div><img
-          src="https://jeepaypublic.oss-cn-beijing.aliyuncs.com/oem/f743c4a7-0166-4b73-8652-b57dea7c5cc0.svg"
-          style="height: 30px"></div>
+          src="${baseURL}/image/logo.png"
+          style="height: 50px;width: 50px"></div>
     <div class="syt-text">收银台</div>
   </div>
 </div>
@@ -156,7 +156,7 @@
         style="padding-top: 59px; display: flex; flex-direction: row; justify-content: space-between">
 
       <div style="padding-left: 30px"><span class="left-text">订单金额：</span><span
-            class="amount-text right-text-span">${payOrder.amount}</span></div>
+            class="amount-text right-text-span">${amount}</span></div>
       <div style="padding-right: 30px"><span
             style="color: #8e8e8e;padding-right: 5px;font-size: 16px;">剩余时间</span><span
             id="downMinSpan" style="font-size: 16px;">--:--</span></div>
@@ -514,7 +514,8 @@
       </div>
     </div>
     <div style="padding-top: 90px; padding-left: 30px"><span class="left-text">应付金额：</span><span
-          class="right-text-span amount-text" style="font-size: 18px;">￥0.01</span></div>
+          class="right-text-span amount-text" style="font-size: 18px;">${amount}</span>
+    </div>
 
 
     <button class="layui-btn layui-btn-danger pay-btn confirmBtn">立即支付</button>
@@ -522,7 +523,7 @@
 
     <div style="margin-top: 80px; padding-bottom: 19px; display: flex; justify-content: center">
       <div>
-        <span style="color: #3c405c;font-size: 14px; font-style: italic;">计全付</span>&nbsp;
+        <span style="color: #3c405c;font-size: 14px; font-style: italic;">CCPay</span>&nbsp;
         <span style="color: #9e9e9e;font-size: 14px">提供技术支持</span>
       </div>
     </div>
@@ -625,7 +626,7 @@ layui.use(['jquery', 'element', 'layer', 'util'], function(){
             payDataType = 'codeImgUrl'
         }
 
-        $reqApi('/api/api/webCashier/convertPayway/' + payOrderToken, 'post', {wayCode: wayCode, payDataType: payDataType}).then((bizData)=>{
+        $reqApi('${baseURL}/api/webCashier/convertPayway/' + payOrderToken, 'post', {wayCode: wayCode, payDataType: payDataType}).then((bizData)=>{
               console.info(bizData);
 
                location.href = bizData.payUrl;
@@ -650,7 +651,7 @@ layui.use(['jquery', 'element', 'layer', 'util'], function(){
 
     // 定时轮询查询订单
     let queryOrderTask = () => {
-        $reqApi('/api/webCashier/orderState/' + payOrderToken, 'post').then((bizData)=>{
+        $reqApi('${baseURL}/api/webCashier/orderState/' + payOrderToken, 'post').then((bizData)=>{
             if(bizData.state == 2){   // 支付成功
                 if(bizData.returnUrl){  // 跳转到对应的页面（如果有）
                     location.href = bizData.returnUrl;
@@ -666,7 +667,7 @@ layui.use(['jquery', 'element', 'layer', 'util'], function(){
     // 聚合支付： web收银台 转换支付
     $(".qrCashierBtn").click(function(){
 
-        $reqApi('/api/api/webCashier/convertPayway/' + payOrderToken, 'post', {wayCode: "QR_CASHIER", payDataType: "codeImgUrl"}).then((bizData)=>{
+        $reqApi('${baseURL}/api/webCashier/convertPayway/' + payOrderToken, 'post', {wayCode: "QR_CASHIER", payDataType: "codeImgUrl"}).then((bizData)=>{
                 queryOrderTask(); //轮询查单
                 layer.open({
                     title: "扫码支付", type: 1, closeBtn: 0, area: ['300px', '370px'],
@@ -703,6 +704,12 @@ layui.use(['jquery', 'element', 'layer', 'util'], function(){
     downMinTask();
 
 });
+
+
+
+
+
+
 
 
 

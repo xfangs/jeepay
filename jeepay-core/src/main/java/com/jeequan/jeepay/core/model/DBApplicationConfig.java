@@ -20,6 +20,7 @@ import com.alibaba.fastjson.JSONObject;
 import com.jeequan.jeepay.core.utils.JeepayKit;
 import java.io.Serializable;
 import lombok.Data;
+import lombok.extern.slf4j.Slf4j;
 
 /*
  * 系统应用配置项定义Bean
@@ -29,6 +30,7 @@ import lombok.Data;
  * @date 2021/6/8 16:35
  */
 @Data
+@Slf4j
 public class DBApplicationConfig implements Serializable {
 
   /**
@@ -59,7 +61,13 @@ public class DBApplicationConfig implements Serializable {
   }
 
   public String genCASHIERPayUrl(String payOrderId) {
-    return getPaySiteUrl() + "/api/common/webCashier?orderId=" + JeepayKit.aesEncode(payOrderId);
+
+    String url =
+        getPaySiteUrl() + "/api/common/webCashier?orderId=" + JeepayKit.aesEncode(payOrderId);
+
+    log.info(url);
+
+    return url;
   }
 
   /**

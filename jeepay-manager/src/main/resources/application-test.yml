@@ -22,9 +22,9 @@ spring:
       number_format: '#' #数字格式进行原样显示，不加格式化字符例如  100,00
   datasource:
     # yml填写url连接串， 无需将&符号进行转义
-    url: jdbc:log4jdbc:mysql://127.0.0.1:3306/jeepay?characterEncoding=UTF-8&useUnicode=true&useSSL=false&tinyInt1isBit=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai
-    username: root
-    password: root
+    url: jdbc:log4jdbc:mysql://127.0.0.1:3306/ccpay?characterEncoding=UTF-8&useUnicode=true&useSSL=false&tinyInt1isBit=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai
+    username: admin
+    password: 123456
     driver-class-name: net.sf.log4jdbc.DriverSpy
     druid:
       # 连接池配置项

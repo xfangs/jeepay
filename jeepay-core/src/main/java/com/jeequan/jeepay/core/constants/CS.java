@@ -149,6 +149,9 @@ public class CS {
 
     String ALI_GLOBAL_PAY = "aliGlobalPay"; //支付宝（国际）支付
 
+    String WX_GLOBAL_PAY = "wxGlobalPay"; //微信（国际）支付
+
+
     String WXPAY = "wxpay";     // 微信官方支付
     String YSFPAY = "ysfpay";   // 云闪付开放平台
     String XXPAY = "xxpay";     // 小新支付

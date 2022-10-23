@@ -98,10 +98,6 @@ public abstract class AbstractPayOrderController extends ApiController {
 
       if (payOrder != null) { //当订单存在时，封装公共参数。
 
-        if (payOrder.getState() != PayOrder.STATE_INIT) {
-          throw new BizException("订单状态异常");
-        }
-
         payOrder.setWayCode(wayCode); // 需要将订单更新 支付方式
         payOrder.setChannelUser(bizRQ.getChannelUserId()); //更新渠道用户信息
         bizRQ.setMchNo(payOrder.getMchNo());
@@ -180,8 +176,6 @@ public abstract class AbstractPayOrderController extends ApiController {
 
         QrCashierOrderRS qrCashierOrderRS = new QrCashierOrderRS();
         QrCashierOrderRQ qrCashierOrderRQ = (QrCashierOrderRQ) bizRQ;
-
-
 
         DBApplicationConfig dbApplicationConfig = sysConfigService.getDBApplicationConfig();
 
