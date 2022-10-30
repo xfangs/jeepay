@@ -127,6 +127,7 @@ public class UnifiedOrderRQ extends AbstractMchAppRQ {
   @Range(min = 0, max = 2, message = "分账模式设置值有误")
   private Byte divisionMode;
 
+
   /**
    * 返回真实的bizRQ
    **/

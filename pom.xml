@@ -185,6 +185,28 @@
         <version>4.9.4</version>
       </dependency>
 
+      <!-- https://mvnrepository.com/artifact/redis.clients/jedis -->
+      <dependency>
+        <groupId>redis.clients</groupId>
+        <artifactId>jedis</artifactId>
+        <version>3.3.0</version>
+      </dependency>
+
+      <dependency>
+        <groupId>com.github.binarywang</groupId>
+        <artifactId>wx-java-mp-spring-boot-starter</artifactId>
+        <version>4.4.2.B</version>
+      </dependency>
+
+      <!-- https://mvnrepository.com/artifact/com.github.jedis-lock/jedis-lock -->
+      <dependency>
+        <groupId>com.github.jedis-lock</groupId>
+        <artifactId>jedis-lock</artifactId>
+        <version>1.0.0</version>
+        <scope>provided</scope>
+      </dependency>
+
+
 
     </dependencies>
 

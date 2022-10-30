@@ -120,3 +120,16 @@ isys:
 
   mq:
     vender: rocketMQ  #  切换MQ厂商， 支持：【 activeMQ  rabbitMQ  rocketMQ  aliYunRocketMQ 】， 需正确配置 【对应的yml参数】 和 【jeepay-components-mq项目下pom.xml中的依赖包】。
+wx:
+  mp:
+    appId: wx8c942eb5eb3f0856
+    secret: e6eaedccf4017f07d0a7f64156c2bc15
+    token: ccpay
+    aesKey: hTylHv1pUKXRAPepoRCCK1VLAqUeCgugJ9AuB7OfvmV
+    redirect: https://cashier.ccpay.biz/api
+    config-storage:
+      type: Jedis
+      key-prefix: wx
+      redis:
+        host: 127.0.0.1
+        port: 6379

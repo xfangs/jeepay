@@ -183,6 +183,7 @@ public class CS {
     String YSF_JSAPI = "YSF_JSAPI";  //云闪付服务窗支付
 
     String WX_JSAPI = "WX_JSAPI";  //微信jsapi支付
+    String WX_GLOBAL_JSAPI = "WX_GLOBAL_JSAPI";  //微信jsapi支付
     String WX_LITE = "WX_LITE";  //微信小程序支付
     String WX_BAR = "WX_BAR";  //微信条码支付
     String WX_H5 = "WX_H5";  //微信H5支付

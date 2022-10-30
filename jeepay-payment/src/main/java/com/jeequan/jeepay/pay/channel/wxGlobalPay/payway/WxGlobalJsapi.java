@@ -1,6 +1,11 @@
 package com.jeequan.jeepay.pay.channel.wxGlobalPay.payway;
 
+import cn.hutool.core.codec.Base64;
+import cn.hutool.core.util.RandomUtil;
 import cn.hutool.core.util.StrUtil;
+import cn.hutool.crypto.SecureUtil;
+import cn.hutool.crypto.asymmetric.Sign;
+import cn.hutool.crypto.asymmetric.SignAlgorithm;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
 import com.jeequan.jeepay.core.constants.CS.IF_CODE;
@@ -12,7 +17,7 @@ import com.jeequan.jeepay.pay.rqrs.AbstractRS;
 import com.jeequan.jeepay.pay.rqrs.msg.ChannelRetMsg;
 import com.jeequan.jeepay.pay.rqrs.msg.ChannelRetMsg.ChannelState;
 import com.jeequan.jeepay.pay.rqrs.payorder.UnifiedOrderRQ;
-import com.jeequan.jeepay.pay.rqrs.payorder.payway.WxH5OrderRS;
+import com.jeequan.jeepay.pay.rqrs.payorder.payway.WxJsapiOrderRS;
 import com.jeequan.jeepay.pay.util.ApiResBuilder;
 import com.wechat.pay.contrib.apache.httpclient.WechatPayHttpClientBuilder;
 import com.wechat.pay.contrib.apache.httpclient.auth.PrivateKeySigner;
@@ -26,6 +31,8 @@ import java.io.InputStreamReader;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.security.PrivateKey;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -36,7 +43,7 @@ import org.springframework.stereotype.Service;
 
 @Service
 @Slf4j
-public class WxGlobalNative extends WxGlobalPayPaymentService {
+public class WxGlobalJsapi extends WxGlobalPayPaymentService {
 
 
   @Override
@@ -50,8 +57,9 @@ public class WxGlobalNative extends WxGlobalPayPaymentService {
   }
 
   @Override
-  public String preCheck(UnifiedOrderRQ bizRQ, PayOrder payOrder) {
-    return super.preCheck(bizRQ, payOrder);
+  public String preCheck(UnifiedOrderRQ rq, PayOrder payOrder) {
+
+    return null;
   }
 
   @Override
@@ -83,19 +91,28 @@ public class WxGlobalNative extends WxGlobalPayPaymentService {
     req.set("sp_appid", normalMchParams.getAppId());
     req.set("sp_mchid", normalMchParams.getMerchantId());
     req.set("sub_mchid", normalMchParams.getSubMchid());
-    req.set("out_trade_no", payOrder.getPayOrderId());
+    req.set("out_trade_no",
+        payOrder.getPayOrderId());
     req.set("merchant_category_code", "4111");
     req.set("notify_url", getNotifyUrl() + "/" + payOrder.getPayOrderId());
-    req.set("trade_type", "NATIVE");
+    req.set("trade_type", "JSAPI");
 
     JSONObject amount = new JSONObject();
     amount.set("total", bizRQ.getAmount());
     amount.set("currency", bizRQ.getCurrency());
-
     req.set("amount", amount);
-    req.set("description", payOrder.getSubject());
 
-    HttpPost httpPost = new HttpPost("https://apihk.mch.weixin.qq.com/v3/global/transactions/native");
+    JSONObject payer = new JSONObject();
+
+    JSONObject channelExtra = JSONUtil.parseObj(bizRQ.getChannelExtra());
+
+    payer.set("sp_openid", channelExtra.getStr("openId"));
+
+    req.set("description", payOrder.getSubject());
+    req.set("payer", payer);
+
+    HttpPost httpPost = new HttpPost(
+        "https://apihk.mch.weixin.qq.com/v3/global/transactions/jsapi");
     httpPost.addHeader("Accept", "application/json");
     httpPost.addHeader("Content-type", "application/json; charset=utf-8");
     httpPost.setEntity(new StringEntity(req.toString(), Charset.forName("UTF-8")));
@@ -106,15 +123,15 @@ public class WxGlobalNative extends WxGlobalPayPaymentService {
     String result = new BufferedReader(new InputStreamReader(response.getEntity().getContent()))
         .lines().parallel().collect(Collectors.joining(System.lineSeparator()));
 
-    WxH5OrderRS res = ApiResBuilder.buildSuccess(WxH5OrderRS.class);
+    WxJsapiOrderRS res = ApiResBuilder.buildSuccess(WxJsapiOrderRS.class);
 
     ChannelRetMsg channelRetMsg = new ChannelRetMsg();
     res.setChannelRetMsg(channelRetMsg);
     channelRetMsg.setChannelState(ChannelState.WAITING);
 
     if (status != 200) {
-      log.error(StrUtil.format("微信二维码支付下单失败：{code:{},message：{}}", status, result));
-      channelRetMsg.setChannelState(ChannelRetMsg.ChannelState.CONFIRM_FAIL);
+      log.error(StrUtil.format("微信公众号支付下单失败：{code:{},message：{}}", status, result));
+      channelRetMsg.setChannelState(ChannelState.CONFIRM_FAIL);
       channelRetMsg.setChannelErrMsg(StrUtil.format("微信下单失败,{}", result));
       channelRetMsg.setChannelErrCode(status + "");
 
@@ -123,9 +140,44 @@ public class WxGlobalNative extends WxGlobalPayPaymentService {
 
     JSONObject resObj = JSONUtil.parseObj(result);
 
-    String codeUrl = resObj.getStr("code_url");
+    String prepayId = resObj.getStr("prepay_id");
 
-    res.setCodeImgUrl(sysConfigService.getDBApplicationConfig().genScanImgUrl(codeUrl));
+    JSONObject payInfo = new JSONObject();
+    payInfo.set("appId", normalMchParams.getAppId());
+    payInfo.set("timeStamp", System.currentTimeMillis() / 1000 + "");
+    payInfo.set("nonceStr", RandomUtil.randomString(20));
+    payInfo.set("package", "prepay_id=" + prepayId);
+    payInfo.set("signType", "RSA");
+
+    List<String> strings = new LinkedList<>();
+
+    strings.add(payInfo.getStr("appId") + "\n");
+
+    strings.add(payInfo.getStr("timeStamp") + "\n");
+
+    strings.add(payInfo.getStr("nonceStr") + "\n");
+
+    strings.add(payInfo.getStr("package") + "\n");
+
+    StringBuilder sb = new StringBuilder();
+
+    for (String string : strings) {
+
+      sb.append(string);
+
+    }
+
+    Sign sign = SecureUtil.sign(SignAlgorithm.SHA256withRSA);
+
+    sign.setPrivateKey(merchantPrivateKey);
+
+    byte[] signData = sign.sign(sb.toString().getBytes(StandardCharsets.UTF_8));
+
+    String paySign = Base64.encode(signData);
+
+    payInfo.set("paySign", paySign);
+
+    res.setPayInfo(payInfo.toString());
 
     return res;
 

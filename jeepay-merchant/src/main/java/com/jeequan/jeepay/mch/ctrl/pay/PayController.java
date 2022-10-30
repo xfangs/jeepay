@@ -1,25 +1,10 @@
-/*
- * Copyright (c) 2021-2031, 河北计全科技有限公司 (https://www.jeequan.com & jeequan@126.com).
- * <p>
- * Licensed under the GNU LESSER GENERAL PUBLIC LICENSE 3.0;
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- * <p>
- * http://www.gnu.org/licenses/lgpl.html
- * <p>
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-package com.jeequan.jeepay.mch.ctrl.paytest;
+package com.jeequan.jeepay.mch.ctrl.pay;
+
 
 import com.alibaba.fastjson.JSONObject;
 import com.jeequan.jeepay.JeepayClient;
 import com.jeequan.jeepay.core.constants.CS;
 import com.jeequan.jeepay.core.entity.MchApp;
-import com.jeequan.jeepay.core.entity.MchPayPassage;
 import com.jeequan.jeepay.core.exception.BizException;
 import com.jeequan.jeepay.core.model.ApiRes;
 import com.jeequan.jeepay.core.model.DBApplicationConfig;
@@ -31,27 +16,17 @@ import com.jeequan.jeepay.response.PayOrderCreateResponse;
 import com.jeequan.jeepay.service.impl.MchAppService;
 import com.jeequan.jeepay.service.impl.MchPayPassageService;
 import com.jeequan.jeepay.service.impl.SysConfigService;
-import java.util.HashSet;
-import java.util.Set;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-/*
- * 支付测试类
- *
- * @author terrfly
- * @site https://www.jeequan.com
- * @date 2021/6/22 9:43
- */
 @RestController
-@RequestMapping("/api/paytest")
-public class PaytestController extends CommonCtrl {
+@RequestMapping("/api/pay")
+@Slf4j
+public class PayController extends CommonCtrl {
 
   @Autowired
   private MchAppService mchAppService;
@@ -61,32 +36,12 @@ public class PaytestController extends CommonCtrl {
   private SysConfigService sysConfigService;
 
   /**
-   * 查询商户对应应用下支持的支付方式
-   **/
-  @PreAuthorize("hasAuthority('ENT_MCH_PAY_TEST_PAYWAY_LIST')")
-  @GetMapping("/payways/{appId}")
-  public ApiRes payWayList(@PathVariable("appId") String appId) {
-
-    Set<String> payWaySet = new HashSet<>();
-    mchPayPassageService.list(
-        MchPayPassage.gw().select(MchPayPassage::getWayCode)
-            .eq(MchPayPassage::getMchNo, getCurrentMchNo())
-            .eq(MchPayPassage::getAppId, appId)
-            .eq(MchPayPassage::getState, CS.PUB_USABLE)
-    ).stream().forEach(r -> payWaySet.add(r.getWayCode()));
-
-    return ApiRes.ok(payWaySet);
-  }
-
-
-  /**
    * 调起下单接口
    **/
-  @PreAuthorize("hasAuthority('ENT_MCH_PAY_TEST_DO')")
   @PostMapping("/payOrders")
   public ApiRes doPay() {
 
-    logger.info("正在进行测试下单...");
+    log.info("正在进行下单...");
 
     //获取请求参数
     String appId = getValStringRequired("appId");
@@ -97,8 +52,7 @@ public class PaytestController extends CommonCtrl {
     Byte divisionMode = getValByteRequired("divisionMode");
     String orderTitle = getValStringRequired("orderTitle");
     String currency = getValStringRequired("currency");
-
-    String openId = getValString("openId");
+    String openId = getValStringRequired("openId");
 
     if (StringUtils.isEmpty(orderTitle)) {
       throw new BizException("订单标题不能为空");
@@ -138,13 +92,13 @@ public class PaytestController extends CommonCtrl {
     }
 
     model.setClientIp(getClientIp());
-    model.setSubject(orderTitle + "[" + getCurrentMchNo() + "商户联调]");
-    model.setBody(orderTitle + "[" + getCurrentMchNo() + "商户联调]");
+    model.setSubject(orderTitle);
+    model.setBody(orderTitle);
 
     DBApplicationConfig dbApplicationConfig = sysConfigService.getDBApplicationConfig();
 
     model.setNotifyUrl(
-        dbApplicationConfig.getMchSiteUrl() + "/api/anon/paytestNotify/payOrder"); //回调地址
+        dbApplicationConfig.getMchSiteUrl() + "/api/anon/payNotify/payOrder"); //回调地址
     model.setReturnUrl(dbApplicationConfig.getPaySiteUrl());
     model.setDivisionMode(divisionMode); //分账模式
 
@@ -160,6 +114,7 @@ public class PaytestController extends CommonCtrl {
     if (StringUtils.isNotBlank(openId)) {
       extParams.put("openId", openId);
     }
+
     model.setChannelExtra(extParams.toString());
 
     JeepayClient jeepayClient = new JeepayClient(dbApplicationConfig.getPaySiteUrl(),
