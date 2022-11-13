@@ -15,6 +15,7 @@
  */
 package com.jeequan.jeepay.core.entity;
 
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -111,6 +112,8 @@ public class PayOrder extends BaseModel implements Serializable {
    * 三位货币代码,人民币:cny
    */
   private String currency;
+
+
   /**
    * 支付状态: 0-订单生成, 1-支付中, 2-支付成功, 3-支付失败, 4-已撤销, 5-已退款, 6-订单关闭
    */
@@ -204,8 +207,14 @@ public class PayOrder extends BaseModel implements Serializable {
    */
   private Date updatedAt;
 
+
+  @TableField(exist = false)
+  private String status;
+
+
   public static final LambdaQueryWrapper<PayOrder> gw() {
     return new LambdaQueryWrapper<>();
   }
+
 
 }

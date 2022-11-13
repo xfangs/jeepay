@@ -15,17 +15,16 @@
  */
 package com.jeequan.jeepay.mch.ctrl.payconfig;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.metadata.IPage;
+import cn.hutool.core.util.StrUtil;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.jeequan.jeepay.core.entity.PayWay;
 import com.jeequan.jeepay.core.model.ApiRes;
 import com.jeequan.jeepay.mch.ctrl.CommonCtrl;
 import com.jeequan.jeepay.service.impl.MchPayPassageService;
 import com.jeequan.jeepay.service.impl.PayOrderService;
 import com.jeequan.jeepay.service.impl.PayWayService;
-import org.apache.commons.lang3.StringUtils;
+import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -41,33 +40,29 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("api/payWays")
 public class PayWayController extends CommonCtrl {
 
-	@Autowired PayWayService payWayService;
-	@Autowired MchPayPassageService mchPayPassageService;
-	@Autowired PayOrderService payOrderService;
+  @Autowired
+  PayWayService payWayService;
+  @Autowired
+  MchPayPassageService mchPayPassageService;
+  @Autowired
+  PayOrderService payOrderService;
 
-	/**
-	 * @Author: ZhuXiao
-	 * @Description: list
-	 * @Date: 15:52 2021/4/27
-	*/
-	@PreAuthorize("hasAuthority('ENT_PAY_ORDER_SEARCH_PAY_WAY')")
-	@GetMapping
-	public ApiRes list() {
+  /**
+   * @Author: ZhuXiao
+   * @Description: list
+   * @Date: 15:52 2021/4/27
+   */
 
-		PayWay queryObject = getObject(PayWay.class);
+  @GetMapping
+  public ApiRes list() {
 
-		LambdaQueryWrapper<PayWay> condition = PayWay.gw();
-		if(StringUtils.isNotEmpty(queryObject.getWayCode())){
-			condition.like(PayWay::getWayCode, queryObject.getWayCode());
-		}
-		if(StringUtils.isNotEmpty(queryObject.getWayName())){
-			condition.like(PayWay::getWayName, queryObject.getWayName());
-		}
-		condition.orderByAsc(PayWay::getWayCode);
+    List<PayWay> payWayList = payWayService.list(new QueryWrapper<PayWay>()
+        .inSql("way_code", StrUtil.format(
+            "select way_code from t_mch_pay_passage where mch_no = '{}' and if_code = '{}'",
+            getCurrentMchNo(), getValStringRequired("ifCode")))
+    );
 
-		IPage<PayWay> pages = payWayService.page(getIPage(true), condition);
-
-		return ApiRes.page(pages);
-	}
+    return ApiRes.ok(payWayList);
+  }
 
 }

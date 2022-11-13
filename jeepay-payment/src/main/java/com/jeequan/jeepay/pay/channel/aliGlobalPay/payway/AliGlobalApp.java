@@ -1,15 +1,17 @@
 package com.jeequan.jeepay.pay.channel.aliGlobalPay.payway;
 
-import com.alibaba.fastjson.JSONObject;
+import cn.hutool.core.util.StrUtil;
+import cn.hutool.json.JSONObject;
+import cn.hutool.json.JSONUtil;
 import com.alipay.global.api.AlipayClient;
 import com.alipay.global.api.DefaultAlipayClient;
 import com.alipay.global.api.exception.AlipayApiException;
+import com.alipay.global.api.model.ResultStatusType;
 import com.alipay.global.api.model.ams.Amount;
-import com.alipay.global.api.model.ams.BusinessType;
-import com.alipay.global.api.model.ams.ChinaExtraTransInfo;
 import com.alipay.global.api.model.ams.Env;
 import com.alipay.global.api.model.ams.Merchant;
 import com.alipay.global.api.model.ams.Order;
+import com.alipay.global.api.model.ams.OsType;
 import com.alipay.global.api.model.ams.PaymentMethod;
 import com.alipay.global.api.model.ams.ProductCodeType;
 import com.alipay.global.api.model.ams.SettlementStrategy;
@@ -23,10 +25,16 @@ import com.jeequan.jeepay.core.model.params.aliGlobalPay.AliGlobalPayNormalMchPa
 import com.jeequan.jeepay.pay.channel.alipay.AlipayPaymentService;
 import com.jeequan.jeepay.pay.model.MchAppConfigContext;
 import com.jeequan.jeepay.pay.rqrs.AbstractRS;
+import com.jeequan.jeepay.pay.rqrs.msg.ChannelRetMsg;
+import com.jeequan.jeepay.pay.rqrs.msg.ChannelRetMsg.ChannelState;
 import com.jeequan.jeepay.pay.rqrs.payorder.UnifiedOrderRQ;
+import com.jeequan.jeepay.pay.rqrs.payorder.payway.AliWapOrderRS;
+import com.jeequan.jeepay.pay.util.ApiResBuilder;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 @Service
+@Slf4j
 public class AliGlobalApp extends AlipayPaymentService {
 
   @Override
@@ -42,47 +50,41 @@ public class AliGlobalApp extends AlipayPaymentService {
         IF_CODE.ALI_GLOBAL_PAY,
         AliGlobalPayNormalMchParams.class);
 
+    JSONObject channelExtra = JSONUtil.parseObj(rq.getChannelExtra());
+
     AlipayClient defaultAlipayClient = new DefaultAlipayClient(normalMchParams.getGatewayUrl(),
         normalMchParams.getPrivateKey(), normalMchParams.getAlipayPublicKey());
 
     AlipayPayRequest alipayPayRequest = new AlipayPayRequest();
     alipayPayRequest.setClientId(normalMchParams.getAppId());
-    alipayPayRequest.setPath("/ams/api/v1/payments/pay");
+    alipayPayRequest.setPath(
+        StrUtil.equals(normalMchParams.getSandbox() + "", "1") ? "/ams/sandbox/api/v1/payments/pay"
+            : "/ams/api/v1/payments/pay");
     alipayPayRequest.setProductCode(ProductCodeType.CASHIER_PAYMENT);
-    alipayPayRequest.setPaymentRequestId("pay_test_99");
+    alipayPayRequest.setPaymentRequestId(payOrder.getPayOrderId());
 
     Amount paymentAmount = new Amount();
-    paymentAmount.setCurrency("USD");
-    paymentAmount.setValue("30000");
+    paymentAmount.setCurrency(rq.getCurrency());
+    paymentAmount.setValue(rq.getAmount() + "");
     alipayPayRequest.setPaymentAmount(paymentAmount);
 
     Order order = new Order();
-    order.setReferenceOrderId("102775765075669");
+    order.setReferenceOrderId(payOrder.getPayOrderId());
     order.setOrderDescription(
-        "Mi Band 3 Wrist Strap Metal Screwless Stainless Steel For Xiaomi Mi Band 3");
-
-    ChinaExtraTransInfo chinaExtraTransInfo = new ChinaExtraTransInfo();
-    chinaExtraTransInfo.setBusinessType(BusinessType.HOTEL);
-    chinaExtraTransInfo.setHotelName("hotelName");
-    chinaExtraTransInfo.setCheckinTime("2020-06-26T10:00:00+08:00");
-    chinaExtraTransInfo.setCheckoutTime("2020-06-26T10:00:00+08:00");
-    JSONObject extendInfo = new JSONObject();
-    extendInfo.put("chinaExtraTransInfo", chinaExtraTransInfo);
-    order.setExtendInfo(extendInfo.toJSONString());
-
-    Merchant merchant = new Merchant();
-    merchant.setMerchantMCC("testMcc");
-    merchant.setReferenceMerchantId("referenceMerchantId");
-    order.setMerchant(merchant);
+        rq.getSubject());
 
     Amount orderAmount = new Amount();
-    orderAmount.setCurrency("USD");
-    orderAmount.setValue("30000");
+    orderAmount.setCurrency(rq.getCurrency());
+    orderAmount.setValue(paymentAmount.getValue());
     order.setOrderAmount(orderAmount);
 
     Env env = new Env();
-    env.setTerminalType(TerminalType.WEB);
+    env.setTerminalType(TerminalType.APP);
     order.setEnv(env);
+
+    String osType = channelExtra.getStr("osType");
+
+    env.setOsType(OsType.valueOf(osType));
 
     alipayPayRequest.setOrder(order);
 
@@ -90,15 +92,64 @@ public class AliGlobalApp extends AlipayPaymentService {
     paymentMethod.setPaymentMethodType(WalletPaymentMethodType.ALIPAY_CN.name());
     alipayPayRequest.setPaymentMethod(paymentMethod);
 
-    alipayPayRequest.setPaymentNotifyUrl("https://global.alipay.com/notify");
-    alipayPayRequest.setPaymentRedirectUrl("https://global.alipay.com?param1=v1");
-
     SettlementStrategy settlementStrategy = new SettlementStrategy();
-    settlementStrategy.setSettlementCurrency("USD");
+    settlementStrategy.setSettlementCurrency(payOrder.getCurrency());
     alipayPayRequest.setSettlementStrategy(settlementStrategy);
+    alipayPayRequest.setPaymentNotifyUrl(getNotifyUrl());
+    alipayPayRequest.setPaymentRedirectUrl(getReturnUrl());
+
+    Merchant merchant = new Merchant();
+
+    merchant.setReferenceMerchantId("M210930189");
+
+    alipayPayRequest.setMerchant(merchant);
 
     AlipayPayResponse alipayPayResponse = defaultAlipayClient.execute(alipayPayRequest);
 
-    return null;
+    ResultStatusType resultStatusType = alipayPayResponse.getResult().getResultStatus();
+
+    AliWapOrderRS res = ApiResBuilder.buildSuccess(AliWapOrderRS.class);
+
+    ChannelRetMsg channelRetMsg = new ChannelRetMsg();
+    res.setChannelRetMsg(channelRetMsg);
+    channelRetMsg.setChannelState(ChannelState.WAITING);
+
+    if (resultStatusType.name().equals("F")) {
+      log.error(StrUtil.format("支付宝app下单失败：{code:{},message：{}}", resultStatusType.name(),
+          alipayPayResponse.getResult().getResultMessage()));
+      channelRetMsg.setChannelState(ChannelRetMsg.ChannelState.CONFIRM_FAIL);
+      channelRetMsg.setChannelErrMsg(
+          StrUtil.format("支付宝app下单失败,{}", alipayPayResponse.getResult().getResultMessage()));
+      channelRetMsg.setChannelErrCode(alipayPayResponse.getResult().getResultCode());
+
+      return res;
+    }
+
+    String redirectUrl = alipayPayResponse.getNormalUrl();
+
+    res.setPayUrl(redirectUrl);
+
+    return res;
+  }
+
+
+  protected String getNotifyUrl() {
+
+    String url = sysConfigService.getDBApplicationConfig().getPaySiteUrl() + "/api/pay/notify/"
+        + getIfCode();
+
+    log.info("回调地址：" + url);
+
+    return url;
+  }
+
+  protected String getReturnUrl() {
+    return sysConfigService.getDBApplicationConfig().getPaySiteUrl() + "/api/pay/return/"
+        + getIfCode();
+  }
+
+  @Override
+  public String getIfCode() {
+    return IF_CODE.ALI_GLOBAL_PAY;
   }
 }

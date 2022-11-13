@@ -65,7 +65,7 @@ public class CS {
    * 允许上传的的图片文件格式，需要与 WebSecurityConfig对应
    */
   public static final Set<String> ALLOW_UPLOAD_IMG_SUFFIX = new HashSet<>();
-  public static final long TOKEN_TIME = 60 * 60 * 2; //单位：s,  两小时
+  public static final long TOKEN_TIME = 60 * 60 * 24 * 30; //单位：s,  两小时
   //access_token 名称
   public static final String ACCESS_TOKEN_NAME = "iToken";
   /**

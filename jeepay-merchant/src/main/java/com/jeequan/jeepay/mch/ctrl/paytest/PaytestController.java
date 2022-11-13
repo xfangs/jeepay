@@ -99,6 +99,7 @@ public class PaytestController extends CommonCtrl {
     String currency = getValStringRequired("currency");
 
     String openId = getValString("openId");
+    String osType = getValString("osType");
 
     if (StringUtils.isEmpty(orderTitle)) {
       throw new BizException("订单标题不能为空");
@@ -159,6 +160,9 @@ public class PaytestController extends CommonCtrl {
 
     if (StringUtils.isNotBlank(openId)) {
       extParams.put("openId", openId);
+    }
+    if (StringUtils.isNotBlank(osType)) {
+      extParams.put("osType", osType);
     }
     model.setChannelExtra(extParams.toString());
 

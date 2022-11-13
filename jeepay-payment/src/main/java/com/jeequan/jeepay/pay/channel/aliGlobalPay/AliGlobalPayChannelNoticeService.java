@@ -17,6 +17,10 @@ package com.jeequan.jeepay.pay.channel.aliGlobalPay;
 
 import cn.hutool.core.util.StrUtil;
 import com.alibaba.fastjson.JSONObject;
+import com.alipay.global.api.AlipayClient;
+import com.alipay.global.api.DefaultAlipayClient;
+import com.alipay.global.api.request.ams.pay.AlipayPayCancelRequest;
+import com.alipay.global.api.response.ams.pay.AlipayPayCancelResponse;
 import com.alipay.global.api.tools.SignatureTool;
 import com.jeequan.jeepay.core.constants.CS.IF_CODE;
 import com.jeequan.jeepay.core.entity.PayOrder;
@@ -46,26 +50,23 @@ public class AliGlobalPayChannelNoticeService extends AbstractChannelNoticeServi
 
   public static void main(String[] args) throws Exception {
 
-    String publicKey = "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAjRYT2nPTaoWqz3BXCNfYG3hzd+nlxrEPlx8xVe986v3P0W5MBwrW4rKHUVbAlYqKMd0uqURdY5i+rtKLNaETGUwPS8yyK7E31t7k3gX+1CbCTM2ksR6Qdz1NGfdlT9Ixv8NYgQEB+5F8YBahnWDQL2EB2tN1nRLghQXnSyTQtg6jOFkO/YDR9v93r5UQ+zcnw3MtoLtJsycrRd2hhma3gIudj/SrohroWi7Y0tSXsWMGhinx78gHiaFAwApzoZtBdhwPZnLb5zL8P9ETSkX5KQJNxDXEtIgOTKGuhhAL0qI6iGQlr9EXGMW0gXo1ozpMetMTN0JOqm13o3YgVMyvDwIDAQAB";
+    AlipayClient defaultAlipayClient = new DefaultAlipayClient("https://open-sea.alipay.com",
+        "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");
 
-    String json = "{\"notifyType\":\"PAYMENT_RESULT\",\"result\":{\"resultCode\":\"SUCCESS\",\"resultStatus\":\"S\",\"resultMessage\":\"success\"},\"paymentRequestId\":\"20200101234567890444\",\"paymentId\":\"20200101234567890132\",\"paymentAmount\":{\"value\":\"8000\",\"currency\":\"EUR\"},\"actualPaymentAmount\":{\"value\":\"8000\",\"currency\":\"EUR\"},\"paymentCreateTime\":\"2020-01-01T12:01:00+08:30\",\"paymentTime\":\"2020-01-01T12:01:01+08:30\"}";
+    final AlipayPayCancelRequest alipayPayCancelRequest = new AlipayPayCancelRequest();
+    alipayPayCancelRequest.setClientId("SANDBOX_5Y378J2YC65Y03023");
+    alipayPayCancelRequest.setPath("/ams/sandbox/api/v1/payments/cancel");
+    alipayPayCancelRequest.setPaymentRequestId("P1588567922842841090");
 
-    String clientId = "SANDBOX_5Y378J2YC65Y03023";
+    AlipayPayCancelResponse execute = defaultAlipayClient.execute(
+        alipayPayCancelRequest);
 
-    String requestTime = "2022-10-17T15:50:56Z";
-
-    String signature = "PWDE9ZZeG927c9pvRgacEIc5u66GnzRDKvJ89Yh1%2B2maVPg9031ErlcLeb%2FOYhSyHN0YQmb%2Fdylq1DjQkc6TWVS2D%2BrFOr%2BMZS8ibqYY8%2F0%2B9bXcj7Auu7Hekc7L%2BBwi7%2BxHQiAPrk7HaDbUkuwIEqluS9Brk%2F%2FD86Jp%2FbMa42GMZFWETUGgREktZ01rPhS%2B5W2Nfqm%2BXYNdeyRfke4HkFyYGqLvJ%2BcyxS%2B7gos91sRt8CeOAfKen6SXJam4XWUNCYVnKrkrS0CoVNoobdvCo54H%2FGDPtoa%2F%2BJLSc6inWDvLCbzav21X%2BYg596AqPYZzSrdpvLD0zZ0F6fngHuo%2FZw%3D%3D";
-
-    String path = "/ams/sandbox/api/v1/payments/pay";
-
-    boolean verifyResult = SignatureTool.verify("POST", path, clientId, requestTime,
-        json,
-        signature, publicKey);
-
-    System.out.println(verifyResult);
+    System.out.println("22");
 
 
   }
+
 
   @Override
   public String getIfCode() {
@@ -85,6 +86,7 @@ public class AliGlobalPayChannelNoticeService extends AbstractChannelNoticeServi
       String payOrderId = params.getString("paymentRequestId");
 
       log.info("支付回调订单号：" + payOrderId);
+
       return MutablePair.of(payOrderId, params);
 
     } catch (Exception e) {
@@ -98,7 +100,14 @@ public class AliGlobalPayChannelNoticeService extends AbstractChannelNoticeServi
       MchAppConfigContext mchAppConfigContext, NoticeTypeEnum noticeTypeEnum) {
     try {
 
-      ResponseEntity okResponse = textResp("SUCCESS");
+      JSONObject res = new JSONObject();
+      JSONObject _res = new JSONObject();
+      _res.put("resultCode", "SUCCESS");
+      _res.put("resultStatus", "S");
+      _res.put("resultMessage", "success");
+      res.put("result", _res);
+
+      ResponseEntity okResponse = jsonResp(res);
 
       AliGlobalPayNormalMchParams normalMchParams = mchAppConfigContext.getNormalMchParamsByIfCode(
           IF_CODE.ALI_GLOBAL_PAY,
@@ -139,15 +148,10 @@ public class AliGlobalPayChannelNoticeService extends AbstractChannelNoticeServi
 
       log.info("verifyResult:" + verifyResult);
 
-      //验签失败
-      if (!verifyResult) {
-        throw ChannelException.sysError("签名验证失败");
-      }
+      result.setResponseEntity(okResponse); //响应数据
 
-      if ("SUCCESS".equals(jsonParams.getJSONObject("result").getString("resultCode"))) {
-
-        result.setChannelState(ChannelRetMsg.ChannelState.CONFIRM_SUCCESS);
-      }
+      result.setChannelState(ChannelRetMsg.ChannelState.WAITING); // 默认支付中
+      result.setChannelState(ChannelRetMsg.ChannelState.CONFIRM_SUCCESS);
 
       return result;
 

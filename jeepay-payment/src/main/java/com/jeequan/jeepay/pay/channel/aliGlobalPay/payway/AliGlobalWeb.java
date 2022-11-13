@@ -11,7 +11,6 @@ import com.alipay.global.api.model.ams.Amount;
 import com.alipay.global.api.model.ams.Env;
 import com.alipay.global.api.model.ams.Merchant;
 import com.alipay.global.api.model.ams.Order;
-import com.alipay.global.api.model.ams.OsType;
 import com.alipay.global.api.model.ams.PaymentMethod;
 import com.alipay.global.api.model.ams.ProductCodeType;
 import com.alipay.global.api.model.ams.SettlementStrategy;
@@ -35,7 +34,7 @@ import org.springframework.stereotype.Service;
 
 @Service
 @Slf4j
-public class AliGlobalWap extends AlipayPaymentService {
+public class AliGlobalWeb extends AlipayPaymentService {
 
   @Override
   public String preCheck(UnifiedOrderRQ rq, PayOrder payOrder) {
@@ -61,8 +60,6 @@ public class AliGlobalWap extends AlipayPaymentService {
     alipayPayRequest.setProductCode(ProductCodeType.CASHIER_PAYMENT);
     alipayPayRequest.setPaymentRequestId(payOrder.getPayOrderId());
 
-    log.info("payOrder.getPayOrderId()：{}", payOrder.getPayOrderId());
-
     Amount paymentAmount = new Amount();
     paymentAmount.setCurrency(rq.getCurrency());
     paymentAmount.setValue(rq.getAmount() + "");
@@ -79,9 +76,8 @@ public class AliGlobalWap extends AlipayPaymentService {
     order.setOrderAmount(orderAmount);
 
     Env env = new Env();
-    env.setTerminalType(TerminalType.WAP);
+    env.setTerminalType(TerminalType.WEB);
     order.setEnv(env);
-    env.setOsType(OsType.ANDROID);
 
     alipayPayRequest.setOrder(order);
 
@@ -112,17 +108,15 @@ public class AliGlobalWap extends AlipayPaymentService {
     channelRetMsg.setChannelState(ChannelState.WAITING);
 
     if (resultStatusType.name().equals("F")) {
-      log.error(StrUtil.format("支付宝wap下单失败：{code:{},message：{}}", resultStatusType.name(),
+      log.error(StrUtil.format("支付宝web下单失败：{code:{},message：{}}", resultStatusType.name(),
           alipayPayResponse.getResult().getResultMessage()));
-      channelRetMsg.setChannelState(ChannelRetMsg.ChannelState.CONFIRM_FAIL);
+      channelRetMsg.setChannelState(ChannelState.CONFIRM_FAIL);
       channelRetMsg.setChannelErrMsg(
-          StrUtil.format("支付宝wap下单失败,{}", alipayPayResponse.getResult().getResultMessage()));
+          StrUtil.format("支付宝web下单失败,{}", alipayPayResponse.getResult().getResultMessage()));
       channelRetMsg.setChannelErrCode(alipayPayResponse.getResult().getResultCode());
 
       return res;
     }
-
-    log.info("paymentId：{}", alipayPayResponse.getPaymentId());
 
     JSONObject paymentActionForm = JSONUtil.parseObj(alipayPayResponse.getPaymentActionForm());
 
